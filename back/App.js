@@ -1,11 +1,11 @@
-/**
- * Create socket server
- */
+
+ /*Create socket server*/
+
 import { createServer } from "http";
 import { Server } from "socket.io";
 
 const httpServer = createServer();
-const io =
+const allSocketServer =
     new Server(httpServer, {
         cors: {
             origin: "*"
@@ -14,23 +14,46 @@ const io =
 
 
 // Обработка подключения клиента
-io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
 
-    // Сообщить всем - что кто то открыл страницу
-    io.emit('new_user_connection', {socket_id: socket.id})
+ allSocketServer.on("connection", (oneUserSocket) => {
+     console.log(`User connected: ${oneUserSocket.id}`);
 
-    // Обработка сообщения от клиента - его пересылка всем, кто подключен
-    socket.on('new_message', (data) => {
-        io.emit('new_message', data);
-    })
+     // Создайте имя
+     oneUserSocket.name = oneUserSocket.id;
+
+     const newUser = {
+         name: oneUserSocket.name,
+         connectedAt: Date.now(), // Используйте текущее время
+     };
+
+     // Сообщить всем - что кто-то открыл страницу
+     allSocketServer.emit('new_user_connection', newUser);
 
 
-    // Обработка отключения клиента
-    socket.on("disconnect", () => {
-        console.log(`User disconnected: ${socket.id}`);
-    });
-});
+
+oneUserSocket.on('new_name_user',(data)=>{
+
+      oneUserSocket.name = data;
+
+})
+
+     // Обработка сообщения от клиента - его пересылка всем, кто подключен
+     oneUserSocket.on('new_message', (data) => {
+         const msg = {
+
+             name:`user: ${oneUserSocket.name}`,
+             msg: data,
+
+             createdAt: Date.now(), // Используйте текущее время для сообщения
+         };
+         allSocketServer.emit('new_message', msg);
+     });
+
+     // Обработка отключения клиента
+     oneUserSocket.on("disconnect", () => {
+         console.log(`User disconnected: ${oneUserSocket.id}`);
+     });
+ });
 
 /**
  * Run socket server
